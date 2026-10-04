@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://www.gstatic.com; connect-src https://*.googleapis.com https://*.firebaseio.com https://*.workers.dev https://www.gstatic.com; img-src 'self' https: data:; style-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>MirrorStream</title>
@@ -11,10 +11,12 @@
 <body>
   <header class="topbar">
     <a class="logo" href="./">Mirror<span>Stream</span></a>
-    <input id="search" type="search" placeholder="Cari judul video..." autocomplete="off">
-    <select id="sortSelect" class="sort-select" aria-label="Urutkan video">
+    <div class="search-wrap">
+      <input id="search" type="search" placeholder="Cari video..." autocomplete="off" inputmode="search">
+    </div>
+    <select id="sortSelect" class="sort-select" aria-label="Urutan">
       <option value="new">Terbaru</option>
-      <option value="popular">Paling Populer</option>
+      <option value="popular">Terpopuler</option>
     </select>
     <div class="menu-wrap">
       <button id="menuBtn" class="icon-btn" aria-label="Kategori" aria-expanded="false" aria-controls="menu"><span></span><span></span><span></span></button>
@@ -28,7 +30,7 @@
     <nav id="pagination" class="pagination"></nav>
   </main>
 
-  <footer class="footer">&copy; MirrorStream</footer>
+  <footer class="footer">&copy; 2026 MirrorStream</footer>
   <script type="module" src="js/catalog.js"></script>
 </body>
 </html>
