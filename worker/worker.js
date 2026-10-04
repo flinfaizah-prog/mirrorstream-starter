@@ -38,14 +38,21 @@ export default {
 
     // Verifikasi login Firebase + pastikan itu akun admin
     const idToken = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
-    if (!idToken) return json({ error: "unauthorized" }, 401);
+    if (!idToken) return json({ error: "unauthorized: header Authorization kosong" }, 401);
+    if (!env.FIREBASE_API_KEY) return json({ error: "FIREBASE_API_KEY belum diisi di Settings > Variables Cloudflare Worker" }, 500);
+
     const who = await fetch(
       `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${env.FIREBASE_API_KEY}`,
       { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ idToken }) }
     );
-    if (!who.ok) return json({ error: "unauthorized" }, 401);
+    if (!who.ok) {
+      const err = await who.json().catch(() => ({}));
+      return json({ error: "Google Identity Toolkit menolak token / API Key: " + (err.error?.message || who.statusText) }, 401);
+    }
     const user = (await who.json()).users?.[0];
-    if (!user || user.localId !== env.ADMIN_UID) return json({ error: "forbidden" }, 403);
+    if (!user || user.localId !== env.ADMIN_UID) {
+      return json({ error: `Akses ditolak: UID akun login (${user?.localId || "kosong"}) tidak cocok dengan ADMIN_UID (${env.ADMIN_UID || "belum diset"}) di Worker` }, 403);
+    }
 
     let url;
     try {

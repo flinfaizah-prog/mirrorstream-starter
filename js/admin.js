@@ -51,7 +51,9 @@ async function init() {
   let customCats = new Set(["Anime", "Hiburan", "Musik", "Gaming", "Film", "Tutorial"]);
   try {
     const saved = JSON.parse(localStorage.getItem("ms_custom_cats") || "[]");
-    saved.forEach((c) => { if (c) customCats.add(c); });
+    saved.forEach((c) => {
+      if (c && !c.startsWith("http://") && !c.startsWith("https://")) customCats.add(c);
+    });
   } catch {}
 
   function saveCustomCats() {
@@ -61,7 +63,10 @@ async function init() {
   }
 
   const cats = () => {
-    const set = new Set([...customCats, ...items.map((v) => v.category).filter(Boolean)]);
+    const set = new Set([
+      ...customCats,
+      ...items.map((v) => v.category).filter((c) => c && !c.startsWith("http://") && !c.startsWith("https://"))
+    ]);
     return [...set].sort((a, b) => a.localeCompare(b));
   };
 
@@ -70,7 +75,9 @@ async function init() {
     show("loginBox", !user);
     show("app", !!user);
     show("logout", !!user);
+    show("userInfo", !!user);
     if (user) {
+      if ($("userInfo")) $("userInfo").textContent = `${user.email} (UID: ${user.uid})`;
       loadAll();
       loadClicks();
     }
@@ -104,7 +111,8 @@ async function init() {
       renderAll();
     } catch (e) {
       console.error(e);
-      msg("formMsg", "Tidak punya akses. Pastikan UID akun ini ada di koleksi 'admins' (lihat README).");
+      const uid = auth.currentUser?.uid || "";
+      msg("formMsg", `Akses ditolak. Daftarkan UID akun Anda (${uid}) di koleksi 'admins' Firestore.`);
     }
   }
 
@@ -116,7 +124,8 @@ async function init() {
       renderStats();
     } catch (e) {
       console.error(e);
-      $("statsNote").textContent = "Data klik belum bisa dimuat (periksa Security Rules).";
+      const uid = auth.currentUser?.uid || "";
+      $("statsNote").textContent = `Izin membaca log klik ditolak. Pastikan UID akun Anda (${uid}) sudah terdaftar sebagai dokumen di koleksi 'admins' Firestore.`;
     }
   }
 
