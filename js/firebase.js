@@ -14,3 +14,10 @@ export function safeUrl(u) {
     return x.protocol === "https:" || x.protocol === "http:" ? x.href : null;
   } catch { return null; }
 }
+
+// Gambar: http(s) atau data URL gambar hasil unggahan admin
+export function safeImg(u) {
+  if (typeof u !== "string") return null;
+  if (u.length <= 150000 && /^data:image\/(webp|jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(u)) return u;
+  return safeUrl(u);
+}

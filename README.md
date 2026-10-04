@@ -21,5 +21,5 @@ Sebelum config diisi, katalog menampilkan data contoh.
 ## Deploy
 Push ke GitHub, aktifkan Settings > Pages (branch main, root).
 
-## Short link (ShrinkMe)
-Token API tidak boleh ada di frontend. Untuk sekarang, buat short link di ShrinkMe lalu tempel ke kolom "Short link" di dashboard. Otomatisasi lewat backend (Cloud Function) bisa jadi fase berikutnya. Token ShrinkMe yang sempat dibagikan di chat sebaiknya di-regenerate.
+## Short link (SafelinkU)
+Short link dibuat otomatis saat video disimpan di dashboard. Browser memanggil Worker Cloudflare (`worker/worker.js`) dengan token login Firebase; Worker memeriksa bahwa pemanggilnya adalah admin, lalu memanggil API SafelinkU. Token SafelinkU hanya ada di Worker sebagai Secret (tidak pernah di repo atau browser). Variabel Worker: `SAFELINKU_TOKEN` (Secret), `FIREBASE_API_KEY`, `ADMIN_UID`, `ALLOWED_ORIGINS`.

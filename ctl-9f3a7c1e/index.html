@@ -4,14 +4,304 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow, noarchive">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://www.gstatic.com https://apis.google.com; connect-src https://*.googleapis.com https://*.firebaseio.com https://mirrorstream-shortener.fikrialfarizi038.workers.dev; img-src 'self' https: data:; style-src 'self' 'unsafe-inline'; frame-src https://*.firebaseapp.com https://accounts.google.com; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://www.gstatic.com https://apis.google.com; connect-src https://*.googleapis.com https://*.firebaseio.com https://*.workers.dev; img-src 'self' https: data:; style-src 'self' 'unsafe-inline'; frame-src https://*.firebaseapp.com https://accounts.google.com; base-uri 'none'; form-action 'none'; object-src 'none'">
   <meta name="referrer" content="no-referrer">
-  <title>Panel</title>
+  <title>Admin Panel - MirrorStream</title>
   <link rel="stylesheet" href="../css/style.css">
+  <style>
+    /* Admin UI Layout & Structure */
+    .tabs-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .tabs {
+      display: inline-flex;
+      background: #13161d;
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      gap: 4px;
+      overflow-x: auto;
+      max-width: 100%;
+    }
+    .tab-btn {
+      appearance: none;
+      -webkit-appearance: none;
+      border: 0;
+      outline: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all .15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .tab-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .tab-btn.active {
+      background: var(--card);
+      color: #fff;
+      border: 1px solid var(--line);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    }
+
+    /* Panels & Metrics */
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin-bottom: 18px;
+    }
+    .panel h2 {
+      margin: 0 0 14px;
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .panel h2 .sub-h2 {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 400;
+      margin-left: auto;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .stat {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: border-color .15s;
+    }
+    .stat:hover { border-color: #383f4f; }
+    .stat-v {
+      font-size: 28px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.1;
+    }
+    .stat-l {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+    .stat-sub {
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+
+    /* Forms */
+    .form-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 800px) {
+      .form-grid { grid-template-columns: 1fr 1fr; }
+      .full { grid-column: 1/-1; }
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #0f1115;
+      color: var(--text);
+      font: inherit;
+      font-size: 13px;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--muted);
+    }
+    input[readonly] { opacity: .7; cursor: not-allowed; }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td {
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: middle;
+    }
+    th {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: #13161d;
+    }
+    tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
+    td img {
+      width: 64px;
+      aspect-ratio: 16/9;
+      object-fit: cover;
+      border-radius: 6px;
+      background: #222733;
+    }
+    .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--line); }
+
+    /* Badges & Rankings */
+    .badge {
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      display: inline-block;
+    }
+    .badge.published { background: rgba(31, 81, 54, 0.4); color: #4ade80; border: 1px solid #1f5136; }
+    .badge.draft { background: rgba(42, 46, 57, 0.5); color: #94a3b8; border: 1px solid var(--line); }
+    .badge.archived { background: rgba(74, 58, 26, 0.4); color: #facc15; border: 1px solid #4a3a1a; }
+    .badge.popular { background: var(--accent-soft); color: #ff7b80; border: 1px solid rgba(229,72,77,0.4); }
+
+    .rank-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: 800;
+      background: var(--line);
+      color: var(--text);
+      flex-shrink: 0;
+    }
+    .rank-1 { background: #eab308; color: #000; }
+    .rank-2 { background: #94a3b8; color: #000; }
+    .rank-3 { background: #b45309; color: #fff; }
+
+    /* Bar Charts */
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    @media (min-width: 900px) { .grid2 { grid-template-columns: 1fr 1fr; } }
+
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      font-size: 13px;
+    }
+    .bar-row:last-child { border-bottom: 0; }
+    .bar-label {
+      width: 160px;
+      flex-shrink: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .bar-track {
+      flex: 1;
+      height: 8px;
+      background: #0f1115;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 999px;
+      transition: width .3s ease;
+    }
+    .bar-val {
+      width: 50px;
+      text-align: right;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .bar-pct {
+      width: 45px;
+      text-align: right;
+      font-size: 11px;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    /* Thumbnail Preview */
+    .thumb-preview-wrap {
+      position: relative;
+      max-width: 320px;
+      margin-top: 10px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: #0f1115;
+    }
+    .thumb-preview {
+      width: 100%;
+      aspect-ratio: 16/9;
+      object-fit: cover;
+      display: block;
+    }
+    .thumb-remove-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 11px;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+    }
+    .thumb-remove-btn:hover { background: var(--accent); }
+    .flag { font-size: 16px; line-height: 1; display: inline-block; }
+  </style>
 </head>
 <body>
   <header class="topbar">
-    <a class="logo" href="../">Mirror<span>Stream</span></a>
+    <a class="logo" href="../">Mirror<span>Stream</span> <span style="font-size:12px; color:var(--muted); font-weight:400; margin-left:6px">Panel Admin</span></a>
     <span style="flex:1"></span>
     <button id="logout" class="btn ghost sm hidden">Logout</button>
   </header>
@@ -19,50 +309,247 @@
   <main class="container">
     <p id="notconf" class="msg err hidden">Firebase belum dikonfigurasi. Isi js/firebase-config.js terlebih dahulu.</p>
 
-    <section id="loginBox" class="panel hidden" style="max-width:380px">
+    <section id="loginBox" class="panel hidden" style="max-width:380px; margin:40px auto">
       <h2>Login Admin</h2>
-      <label>Email</label><input id="email" type="email" autocomplete="username">
-      <label style="margin-top:8px">Password</label><input id="password" type="password" autocomplete="current-password">
+      <label>Email</label><input id="email" type="email" autocomplete="username" placeholder="admin@example.com">
+      <label style="margin-top:10px">Password</label><input id="password" type="password" autocomplete="current-password" placeholder="••••••••">
       <p id="loginMsg" class="msg err"></p>
-      <button id="loginBtn" class="btn">Masuk</button>
+      <button id="loginBtn" class="btn" style="width:100%; margin-top:8px">Masuk ke Panel</button>
     </section>
 
     <div id="app" class="hidden">
-      <section class="panel">
-        <h2 id="formTitle">Tambah Video</h2>
-        <div class="form-grid">
-          <div class="full"><label>Judul *</label><input id="title" maxlength="200"></div>
-          <div><label>URL asli *</label><input id="originalUrl" placeholder="https://..."></div>
-          <div><label>Short link (otomatis dari SafelinkU)</label><input id="shortUrl" readonly placeholder="dibuat otomatis saat Simpan"></div>
-          <div class="full"><label>URL thumbnail (16:9, WebP/JPG)</label><input id="thumbnailUrl" placeholder="https://..."></div>
-          <div><label>Kategori</label><input id="category" list="catlist" maxlength="40"><datalist id="catlist"></datalist></div>
-          <div><label>Status</label>
-            <select id="status"><option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option></select>
-          </div>
-          <div class="full"><label>Deskripsi (opsional)</label><textarea id="description" rows="2" maxlength="500"></textarea></div>
-        </div>
-        <p id="formMsg" class="msg"></p>
-        <div class="row">
-          <button id="saveBtn" class="btn">Simpan</button>
-          <button id="cancelBtn" class="btn ghost hidden">Batal edit</button>
-        </div>
-      </section>
+      <div class="tabs-container">
+        <nav class="tabs">
+          <button class="tab-btn active" data-tab="overview">📊 Ringkasan</button>
+          <button class="tab-btn" data-tab="videos">🎬 Video</button>
+          <button class="tab-btn" data-tab="stats">📈 Statistik & Geo</button>
+          <button class="tab-btn" data-tab="categories">🏷️ Kategori</button>
+        </nav>
+      </div>
 
-      <section class="panel">
-        <h2>Daftar Video</h2>
-        <div class="row" style="margin-bottom:10px">
-          <input id="filter" placeholder="Cari judul..." style="max-width:260px">
-          <select id="statusFilter" style="max-width:160px">
-            <option value="">Semua status</option><option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option>
-          </select>
+      <!-- TAB: RINGKASAN -->
+      <div id="tab-overview" class="tab">
+        <div id="stats" class="stats"></div>
+
+        <div class="grid2">
+          <section class="panel">
+            <h2>🏆 Video Paling Banyak Di-klik <span class="sub-h2">Top 5</span></h2>
+            <div id="topVideos"></div>
+          </section>
+          <section class="panel">
+            <h2>🌍 Negara & DNS Pengunjung <span class="sub-h2">Top 5</span></h2>
+            <div id="topCountries"></div>
+          </section>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th></th><th>Judul</th><th>Kategori</th><th>Status</th><th>Aksi</th></tr></thead>
-            <tbody id="rows"></tbody>
-          </table>
+
+        <div class="grid2">
+          <section class="panel">
+            <h2>📊 Performa Kategori <span class="sub-h2">Total Klik</span></h2>
+            <div id="topCategories"></div>
+          </section>
+          <section class="panel">
+            <h2>⏱️ Aktivitas Klik Terbaru <span class="sub-h2">Real-time Feed</span></h2>
+            <div id="recentClicks"></div>
+          </section>
         </div>
-      </section>
+      </div>
+
+      <!-- TAB: VIDEO -->
+      <div id="tab-videos" class="tab hidden">
+        <section class="panel">
+          <h2 id="formTitle">Tambah Video</h2>
+          <div class="form-grid">
+            <div class="full">
+              <label>Judul Video *</label>
+              <input id="title" maxlength="200" placeholder="Contoh: Tutorial React 2026 Lengkap">
+            </div>
+            <div>
+              <label>URL Video Asli *</label>
+              <input id="originalUrl" placeholder="https://drive.google.com/... atau URL lainnya">
+            </div>
+            <div>
+              <label>Short Link (SafelinkU)</label>
+              <input id="shortUrl" readonly placeholder="Dibuat otomatis oleh worker saat Simpan">
+            </div>
+
+            <div class="full">
+              <label>Thumbnail Video (Pilih file gambar untuk upload atau tempel URL gambar):</label>
+              <div class="row">
+                <input id="thumbFile" type="file" accept="image/*" style="max-width:280px">
+                <input id="thumbnailUrl" placeholder="atau tempel URL: https://..." style="flex:1; min-width:200px">
+              </div>
+              <div id="thumbPreviewWrap" class="thumb-preview-wrap hidden">
+                <img id="thumbPreview" class="thumb-preview" alt="Preview thumbnail">
+                <button type="button" id="removeThumbBtn" class="thumb-remove-btn">✕ Hapus</button>
+              </div>
+            </div>
+
+            <div>
+              <label>Kategori (Pilih dari daftar atau buat baru)</label>
+              <select id="categorySel"></select>
+              <input id="categoryNew" class="hidden" maxlength="40" placeholder="Ketik nama kategori baru..." style="margin-top:6px">
+            </div>
+            <div>
+              <label>Status Video</label>
+              <select id="status">
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+            <div class="full">
+              <label>Deskripsi Video (Opsional)</label>
+              <textarea id="description" rows="2" maxlength="500" placeholder="Deskripsi singkat..."></textarea>
+            </div>
+          </div>
+          <p id="formMsg" class="msg"></p>
+          <div class="row" style="margin-top:10px">
+            <button id="saveBtn" class="btn">💾 Simpan Video</button>
+            <button id="cancelBtn" class="btn ghost hidden">Batal Edit</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Daftar Semua Video</h2>
+          <div class="row" style="margin-bottom:12px">
+            <input id="filter" placeholder="Cari judul video..." style="max-width:260px">
+            <select id="categoryFilter" style="max-width:180px">
+              <option value="">Semua kategori</option>
+            </select>
+            <select id="statusFilter" style="max-width:160px">
+              <option value="">Semua status</option>
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+              <option value="archived">Archived</option>
+            </select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Thumbnail</th>
+                  <th>Judul</th>
+                  <th>Kategori</th>
+                  <th>Total Klik</th>
+                  <th>Status</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- TAB: STATISTIK & GEO -->
+      <div id="tab-stats" class="tab hidden">
+        <section class="panel">
+          <div class="row">
+            <h2 style="margin:0; flex:1">Analisis Statistik & Lokasi Pengunjung (DNS/Geo)</h2>
+            <button id="reloadClicks" class="btn ghost sm">🔄 Muat Ulang Data</button>
+          </div>
+          <p class="msg" style="color:var(--muted)" id="statsNote"></p>
+        </section>
+
+        <div id="statsSummary" class="stats"></div>
+
+        <section class="panel">
+          <h2>🌐 Distribusi Negara & DNS Pengunjung Lengkap</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:50px">#</th>
+                  <th>Negara & DNS Asal</th>
+                  <th>Kode ISO</th>
+                  <th>Jumlah Klik</th>
+                  <th>Persentase</th>
+                  <th style="width:250px">Grafik</th>
+                </tr>
+              </thead>
+              <tbody id="countryTableRows"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="grid2">
+          <section class="panel">
+            <h2>📅 Tren Klik Harian (14 Hari Terakhir)</h2>
+            <div id="byDay"></div>
+          </section>
+          <section class="panel">
+            <h2>📊 Distribusi Klik Berdasarkan Kategori</h2>
+            <div id="byCategoryStats"></div>
+          </section>
+        </div>
+
+        <section class="panel">
+          <h2>🔥 Peringkat Seluruh Video Berdasarkan Jumlah Klik</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:50px">Peringkat</th>
+                  <th>Video</th>
+                  <th>Kategori</th>
+                  <th>Status</th>
+                  <th>Jumlah Klik</th>
+                  <th>Pangsa Klik (%)</th>
+                </tr>
+              </thead>
+              <tbody id="videoRankRows"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>📜 Log Riwayat Klik Pengunjung Terbaru</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Waktu</th>
+                  <th>Judul Video</th>
+                  <th>Negara Pengunjung</th>
+                </tr>
+              </thead>
+              <tbody id="clickLogRows"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- TAB: KATEGORI -->
+      <div id="tab-categories" class="tab hidden">
+        <section class="panel">
+          <h2>Tambah Kategori Baru</h2>
+          <div class="row">
+            <input id="newCatInput" maxlength="40" placeholder="Nama kategori baru (mis. Anime, Tutorial, Musik...)" style="max-width:340px">
+            <button id="newCatBtn" class="btn sm">+ Tambah Kategori</button>
+          </div>
+          <p id="newCatMsg" class="msg"></p>
+        </section>
+
+        <section class="panel">
+          <h2>Daftar Kategori</h2>
+          <p class="msg" style="color:var(--muted)">Kelola nama kategori atau hapus. Jika kategori dihapus, video di dalamnya tetap aman dan menjadi tanpa kategori.</p>
+          <p id="catMsg" class="msg"></p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Kategori</th>
+                  <th>Jumlah Video</th>
+                  <th>Total Klik</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="catRows"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
     </div>
   </main>
   <script type="module" src="../js/admin.js"></script>

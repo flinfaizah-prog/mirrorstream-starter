@@ -1,10 +1,14 @@
-// Cloudflare Worker: perantara aman ke SafelinkU.
-// Variabel yang harus diisi di Cloudflare (Settings > Variables and Secrets):
+// Cloudflare Worker: perantara aman ke SafelinkU + info negara pengunjung.
+// Variabel (Settings > Variables and Secrets):
 //   SAFELINKU_TOKEN  (Secret)  token API SafelinkU
-//   FIREBASE_API_KEY (Text)    apiKey dari firebase-config.js
+//   FIREBASE_API_KEY (Secret)  key khusus Worker (hanya Identity Toolkit API)
 //   ADMIN_UID        (Text)    UID akun admin Firebase
-//   ALLOWED_ORIGINS  (Text)    daftar origin dipisah koma, mis.
-//                              https://USERNAME.github.io,http://127.0.0.1:5500,http://localhost:5500
+//   ALLOWED_ORIGINS  (Text)    origin dipisah koma, mis.
+//                              https://flinfaizah-prog.github.io,http://localhost:8000
+//
+// Rute:
+//   GET  /geo  -> {"country":"ID"}  (kode negara dari Cloudflare, tanpa menyimpan IP)
+//   POST /     -> buat short link (khusus admin)
 
 export default {
   async fetch(req, env) {
@@ -13,15 +17,24 @@ export default {
     const cors = {
       "Access-Control-Allow-Origin": allowed.includes(origin) ? origin : "null",
       "Access-Control-Allow-Headers": "Authorization, Content-Type",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Vary": "Origin"
     };
     const json = (obj, status = 200) =>
       new Response(JSON.stringify(obj), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
-    if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
     if (!allowed.includes(origin)) return json({ error: "origin not allowed" }, 403);
+
+    const path = new URL(req.url).pathname;
+
+    if (path === "/geo") {
+      if (req.method !== "GET") return json({ error: "method not allowed" }, 405);
+      const c = req.cf && req.cf.country;
+      return json({ country: /^[A-Z]{2}$/.test(c || "") ? c : "XX" });
+    }
+
+    if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
 
     // Verifikasi login Firebase + pastikan itu akun admin
     const idToken = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
@@ -34,7 +47,6 @@ export default {
     const user = (await who.json()).users?.[0];
     if (!user || user.localId !== env.ADMIN_UID) return json({ error: "forbidden" }, 403);
 
-    // Validasi URL
     let url;
     try {
       const body = await req.json();
