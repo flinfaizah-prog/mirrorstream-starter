@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://www.gstatic.com https://apis.google.com; connect-src https://*.googleapis.com https://*.firebaseio.com https://mirrorstream-shortener.fikrialfarizi038.workers.dev; img-src 'self' https: data:; style-src 'self' 'unsafe-inline'; frame-src https://*.firebaseapp.com https://accounts.google.com; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Panel</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="logo" href="../">Mirror<span>Stream</span></a>
+    <span style="flex:1"></span>
+    <button id="logout" class="btn ghost sm hidden">Logout</button>
+  </header>
+
+  <main class="container">
+    <p id="notconf" class="msg err hidden">Firebase belum dikonfigurasi. Isi js/firebase-config.js terlebih dahulu.</p>
+
+    <section id="loginBox" class="panel hidden" style="max-width:380px">
+      <h2>Login Admin</h2>
+      <label>Email</label><input id="email" type="email" autocomplete="username">
+      <label style="margin-top:8px">Password</label><input id="password" type="password" autocomplete="current-password">
+      <p id="loginMsg" class="msg err"></p>
+      <button id="loginBtn" class="btn">Masuk</button>
+    </section>
+
+    <div id="app" class="hidden">
+      <section class="panel">
+        <h2 id="formTitle">Tambah Video</h2>
+        <div class="form-grid">
+          <div class="full"><label>Judul *</label><input id="title" maxlength="200"></div>
+          <div><label>URL asli *</label><input id="originalUrl" placeholder="https://..."></div>
+          <div><label>Short link (otomatis dari SafelinkU)</label><input id="shortUrl" readonly placeholder="dibuat otomatis saat Simpan"></div>
+          <div class="full"><label>URL thumbnail (16:9, WebP/JPG)</label><input id="thumbnailUrl" placeholder="https://..."></div>
+          <div><label>Kategori</label><input id="category" list="catlist" maxlength="40"><datalist id="catlist"></datalist></div>
+          <div><label>Status</label>
+            <select id="status"><option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option></select>
+          </div>
+          <div class="full"><label>Deskripsi (opsional)</label><textarea id="description" rows="2" maxlength="500"></textarea></div>
+        </div>
+        <p id="formMsg" class="msg"></p>
+        <div class="row">
+          <button id="saveBtn" class="btn">Simpan</button>
+          <button id="cancelBtn" class="btn ghost hidden">Batal edit</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Daftar Video</h2>
+        <div class="row" style="margin-bottom:10px">
+          <input id="filter" placeholder="Cari judul..." style="max-width:260px">
+          <select id="statusFilter" style="max-width:160px">
+            <option value="">Semua status</option><option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th></th><th>Judul</th><th>Kategori</th><th>Status</th><th>Aksi</th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script type="module" src="../js/admin.js"></script>
+</body>
+</html>

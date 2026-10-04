@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function validVideo(d) {
+      return d.keys().hasOnly(['title','description','thumbnailUrl','originalUrl','shortUrl','category','status','createdAt','updatedAt','publishedAt','createdBy'])
+        && d.title is string && d.title.size() > 0 && d.title.size() <= 200
+        && d.originalUrl is string && d.originalUrl.matches('https?://.*') && d.originalUrl.size() <= 2000
+        && d.status in ['draft', 'published', 'archived']
+        && (!('shortUrl' in d) || (d.shortUrl is string && d.shortUrl.size() <= 2000))
+        && (!('thumbnailUrl' in d) || (d.thumbnailUrl is string && d.thumbnailUrl.size() <= 2000))
+        && (!('category' in d) || (d.category is string && d.category.size() <= 40))
+        && (!('description' in d) || (d.description is string && d.description.size() <= 500));
+    }
+
+    // Publik hanya boleh membaca video berstatus published
+    match /videos/{id} {
+      allow read: if resource.data.status == 'published' || isAdmin();
+      allow create, update: if isAdmin() && validVideo(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // Cadangan: tidak ada yang dipakai lagi dari klien
+    match /settings/{id} {
+      allow read, write: if false;
+    }
+
+    // Daftar admin: dibuat manual lewat Firebase Console, tidak bisa diubah dari klien
+    match /admins/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+  }
+}

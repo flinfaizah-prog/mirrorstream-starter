@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://www.gstatic.com; connect-src https://*.googleapis.com https://*.firebaseio.com; img-src 'self' https: data:; style-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>MirrorStream</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="logo" href="./">Mirror<span>Stream</span></a>
+    <input id="search" type="search" placeholder="Cari judul video..." autocomplete="off">
+  </header>
+
+  <main class="container">
+    <div id="categories" class="chips"></div>
+    <p id="info" class="info"></p>
+    <div id="grid" class="grid"></div>
+    <nav id="pagination" class="pagination"></nav>
+  </main>
+
+  <footer class="footer">&copy; MirrorStream</footer>
+  <script type="module" src="js/catalog.js"></script>
+</body>
+</html>
