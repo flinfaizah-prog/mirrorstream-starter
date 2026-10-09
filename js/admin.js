@@ -1,5 +1,5 @@
 import { db, auth, safeUrl, safeImg } from "./firebase.js";
-import { isConfigured, SHORTENER_URL, ALLOWED_ADMIN_EMAILS } from "./firebase-config.js";
+import { isConfigured, SHORTENER_URL } from "./firebase-config.js";
 
 const $ = (id) => document.getElementById(id);
 const show = (id, on) => $(id).classList.toggle("hidden", !on);
@@ -70,168 +70,27 @@ async function init() {
     return [...set].sort((a, b) => a.localeCompare(b));
   };
 
-  if (window.location.protocol === "file:") {
-    msg("loginMsg", "Peringatan: Firebase Auth tidak mendukung protokol file://. Jalankan via server lokal (http://localhost) atau hosting.");
-  }
-
   /* ---------- auth & navigasi tab ---------- */
-  const isAllowedAdmin = (email) => {
-    if (!email) return false;
-    const lower = email.toLowerCase();
-    return (ALLOWED_ADMIN_EMAILS || []).some((allowed) => allowed.toLowerCase() === lower);
-  };
-
-  // Tangani hasil login Redirect (jika halaman dialihkan dari Google)
-  try {
-    const redirectRes = await A.getRedirectResult(auth);
-    if (redirectRes && redirectRes.user) {
-      if (!isAllowedAdmin(redirectRes.user.email)) {
-        await A.signOut(auth);
-        msg("loginMsg", `Akses ditolak: Akun ${redirectRes.user.email} bukan email admin yang diizinkan.`);
-      }
-    }
-  } catch (err) {
-    console.error("Error getRedirectResult:", err);
-    if (err.code === "auth/unauthorized-domain") {
-      msg("loginMsg", `Domain "${window.location.hostname}" belum terdaftar di Firebase Console > Authentication > Settings > Authorized Domains.`);
-    } else if (err.code) {
-      msg("loginMsg", "Error redirect login: " + (err.message || err.code));
-    }
-  }
-
-  A.onAuthStateChanged(auth, async (user) => {
+  A.onAuthStateChanged(auth, (user) => {
+    show("loginBox", !user);
+    show("app", !!user);
+    show("logout", !!user);
+    show("userInfo", !!user);
     if (user) {
-      if (!isAllowedAdmin(user.email)) {
-        await A.signOut(auth);
-        show("loginBox", true);
-        show("app", false);
-        show("logout", false);
-        show("userInfo", false);
-        msg("loginMsg", `Akses ditolak: Akun ${user.email} bukan email admin yang diizinkan.`);
-        return;
-      }
-
-      show("loginBox", false);
-      show("app", true);
-      show("logout", true);
-      show("userInfo", true);
       if ($("userInfo")) $("userInfo").textContent = `${user.email} (UID: ${user.uid})`;
-
-      // Sinkronkan dokumen UID admin ke koleksi 'admins' Firestore jika diizinkan
-      try {
-        await F.setDoc(F.doc(db, "admins", user.uid), {
-          email: user.email,
-          role: "admin",
-          lastLogin: F.serverTimestamp()
-        }, { merge: true });
-      } catch (err) {
-        // Jika rules belum mengizinkan penulisan dokumen admins, tidak menggagalkan login
-      }
-
       loadAll();
       loadClicks();
-    } else {
-      show("loginBox", true);
-      show("app", false);
-      show("logout", false);
-      show("userInfo", false);
     }
   });
 
-  const googleProvider = new A.GoogleAuthProvider();
-  googleProvider.setCustomParameters({ prompt: "select_account" });
-
-  const doRedirectLogin = async () => {
-    msg("loginMsg", "Mengalihkan ke halaman login Google resmi...", true);
-    try {
-      await A.signInWithRedirect(auth, googleProvider);
-    } catch (err) {
-      console.error("signInWithRedirect error:", err);
-      if (err.code === "auth/unauthorized-domain") {
-        msg("loginMsg", `Domain "${window.location.hostname}" belum diizinkan di Firebase Console > Authentication > Settings > Authorized Domains.`);
-      } else {
-        msg("loginMsg", "Gagal mengalihkan ke Google: " + (err.message || err.code));
-      }
-    }
-  };
-
-  // Login dengan Google (Popup dengan Auto-Fallback ke Redirect jika diblokir)
-  const googleBtn = $("googleLoginBtn");
-  if (googleBtn) {
-    googleBtn.onclick = async () => {
-      $("loginMsg").textContent = "Membuka jendela login Google...";
-      $("loginMsg").className = "msg";
-      googleBtn.disabled = true;
-
-      try {
-        const res = await A.signInWithPopup(auth, googleProvider);
-        if (!isAllowedAdmin(res.user?.email)) {
-          await A.signOut(auth);
-          msg("loginMsg", `Akses ditolak: Akun ${res.user?.email} bukan email admin yang diizinkan.`);
-        }
-      } catch (err) {
-        console.warn("Popup gagal atau diblokir adblocker:", err);
-        // Jika popup diblokir oleh adblocker, popup-blocker, atau lingkungan browser
-        if (
-          err.code === "auth/popup-blocked" ||
-          err.code === "auth/cancelled-popup-request" ||
-          err.code === "auth/popup-closed-by-user" ||
-          err.code === "auth/operation-not-supported-in-this-environment"
-        ) {
-          // Otomatis beralih ke Redirect (100% lolos adblocker & popup blocker)
-          await doRedirectLogin();
-          return;
-        } else if (err.code === "auth/unauthorized-domain") {
-          msg("loginMsg", `Domain "${window.location.hostname}" belum diizinkan di Firebase Console > Authentication > Settings > Authorized Domains.`);
-        } else {
-          msg("loginMsg", "Gagal login Google: " + (err.message || err.code));
-        }
-      } finally {
-        googleBtn.disabled = false;
-      }
-    };
-  }
-
-  // Tombol Mode Redirect Langsung (anti-blocker)
-  const redirectBtn = $("googleRedirectBtn");
-  if (redirectBtn) {
-    redirectBtn.onclick = () => doRedirectLogin();
-  }
-
   $("loginBtn").onclick = async () => {
     try {
-      const email = $("email").value.trim();
-      if (!isAllowedAdmin(email)) {
-        msg("loginMsg", "Akses ditolak: Hanya email admin yang diizinkan masuk.");
-        return;
-      }
-      await A.signInWithEmailAndPassword(auth, email, $("password").value);
+      await A.signInWithEmailAndPassword(auth, $("email").value.trim(), $("password").value);
       $("loginMsg").textContent = "";
     } catch {
       msg("loginMsg", "Login gagal. Periksa email dan password.");
     }
   };
-
-  const forgotBtn = $("forgotPwBtn");
-  if (forgotBtn) {
-    forgotBtn.onclick = async () => {
-      const email = $("email").value.trim() || (ALLOWED_ADMIN_EMAILS && ALLOWED_ADMIN_EMAILS[0]) || "";
-      if (!email) {
-        msg("loginMsg", "Isi kolom email admin terlebih dahulu.");
-        return;
-      }
-      if (!isAllowedAdmin(email)) {
-        msg("loginMsg", `Akses ditolak: ${email} bukan email admin yang diizinkan.`);
-        return;
-      }
-      try {
-        await A.sendPasswordResetEmail(auth, email);
-        msg("loginMsg", `Link reset password telah dikirim ke ${email}. Cek inbox atau spam email Anda.`, true);
-      } catch (e) {
-        msg("loginMsg", "Gagal kirim reset email: " + (e.message || e.code));
-      }
-    };
-  }
 
   $("logout").onclick = () => A.signOut(auth);
 

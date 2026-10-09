@@ -13,8 +13,3 @@ export const PAGE_SIZE = 20;
 // Isi dengan URL Worker setelah deploy, mis. https://mirrorstream-shortener.NAMA.workers.dev
 export const SHORTENER_URL = "https://mirrorstream-shortener.fikrialfarizi038.workers.dev";
 export const isConfigured = !firebaseConfig.apiKey.startsWith("ISI_");
-
-// Email khusus admin yang diizinkan login (Google OAuth)
-export const ALLOWED_ADMIN_EMAILS = [
-  "fikrialfarizi039@gmail.com"
-];
