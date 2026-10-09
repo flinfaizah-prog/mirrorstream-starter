@@ -1,5 +1,5 @@
 import { db, auth, safeUrl, safeImg } from "./firebase.js";
-import { isConfigured, SHORTENER_URL } from "./firebase-config.js";
+import { isConfigured, SHORTENER_URL, ALLOWED_ADMIN_EMAILS } from "./firebase-config.js";
 
 const $ = (id) => document.getElementById(id);
 const show = (id, on) => $(id).classList.toggle("hidden", !on);
@@ -71,21 +71,85 @@ async function init() {
   };
 
   /* ---------- auth & navigasi tab ---------- */
-  A.onAuthStateChanged(auth, (user) => {
-    show("loginBox", !user);
-    show("app", !!user);
-    show("logout", !!user);
-    show("userInfo", !!user);
+  const isAllowedAdmin = (email) => {
+    if (!email) return false;
+    const lower = email.toLowerCase();
+    return (ALLOWED_ADMIN_EMAILS || []).some((allowed) => allowed.toLowerCase() === lower);
+  };
+
+  A.onAuthStateChanged(auth, async (user) => {
     if (user) {
+      if (!isAllowedAdmin(user.email)) {
+        await A.signOut(auth);
+        show("loginBox", true);
+        show("app", false);
+        show("logout", false);
+        show("userInfo", false);
+        msg("loginMsg", `Akses ditolak: Akun ${user.email} bukan email admin yang diizinkan.`);
+        return;
+      }
+
+      show("loginBox", false);
+      show("app", true);
+      show("logout", true);
+      show("userInfo", true);
       if ($("userInfo")) $("userInfo").textContent = `${user.email} (UID: ${user.uid})`;
+
+      // Sinkronkan dokumen UID admin ke koleksi 'admins' Firestore jika diizinkan
+      try {
+        await F.setDoc(F.doc(db, "admins", user.uid), {
+          email: user.email,
+          role: "admin",
+          lastLogin: F.serverTimestamp()
+        }, { merge: true });
+      } catch (err) {
+        // Jika rules belum mengizinkan penulisan dokumen admins, tidak menggagalkan login
+      }
+
       loadAll();
       loadClicks();
+    } else {
+      show("loginBox", true);
+      show("app", false);
+      show("logout", false);
+      show("userInfo", false);
     }
   });
 
+  // Login dengan Google
+  const googleBtn = $("googleLoginBtn");
+  if (googleBtn) {
+    const googleProvider = new A.GoogleAuthProvider();
+    googleProvider.setCustomParameters({ prompt: "select_account" });
+    googleBtn.onclick = async () => {
+      $("loginMsg").textContent = "";
+      try {
+        const res = await A.signInWithPopup(auth, googleProvider);
+        if (!isAllowedAdmin(res.user?.email)) {
+          await A.signOut(auth);
+          msg("loginMsg", `Akses ditolak: Akun ${res.user?.email} bukan email admin yang diizinkan.`);
+        }
+      } catch (err) {
+        console.error(err);
+        if (err.code === "auth/popup-closed-by-user") {
+          msg("loginMsg", "Login Google dibatalkan.");
+        } else if (err.code === "auth/unauthorized-domain") {
+          msg("loginMsg", "Domain belum diizinkan di Firebase Console > Authentication > Settings > Authorized Domains.");
+        } else {
+          msg("loginMsg", "Gagal login Google: " + (err.message || err.code));
+        }
+      }
+    };
+  }
+
   $("loginBtn").onclick = async () => {
     try {
-      await A.signInWithEmailAndPassword(auth, $("email").value.trim(), $("password").value);
+      const email = $("email").value.trim();
+      if (!isAllowedAdmin(email)) {
+        msg("loginMsg", "Akses ditolak: Hanya email admin yang diizinkan masuk.");
+        return;
+      }
+      await A.signInWithEmailAndPassword(auth, email, $("password").value);
       $("loginMsg").textContent = "";
     } catch {
       msg("loginMsg", "Login gagal. Periksa email dan password.");

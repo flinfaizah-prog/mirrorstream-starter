@@ -50,8 +50,12 @@ export default {
       return json({ error: "Google Identity Toolkit menolak token / API Key: " + (err.error?.message || who.statusText) }, 401);
     }
     const user = (await who.json()).users?.[0];
-    if (!user || user.localId !== env.ADMIN_UID) {
-      return json({ error: `Akses ditolak: UID akun login (${user?.localId || "kosong"}) tidak cocok dengan ADMIN_UID (${env.ADMIN_UID || "belum diset"}) di Worker` }, 403);
+    const adminEmail = (env.ADMIN_EMAIL || "fikrialfarizi039@gmail.com").toLowerCase();
+    const isEmailAdmin = user?.email && user.email.toLowerCase() === adminEmail;
+    const isUidAdmin = env.ADMIN_UID && user?.localId === env.ADMIN_UID;
+
+    if (!user || (!isEmailAdmin && !isUidAdmin)) {
+      return json({ error: `Akses ditolak: Akun (${user?.email || user?.localId || "kosong"}) bukan admin terdaftar di Worker` }, 403);
     }
 
     let url;
