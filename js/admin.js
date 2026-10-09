@@ -70,12 +70,34 @@ async function init() {
     return [...set].sort((a, b) => a.localeCompare(b));
   };
 
+  if (window.location.protocol === "file:") {
+    msg("loginMsg", "Peringatan: Firebase Auth tidak mendukung protokol file://. Jalankan via server lokal (http://localhost) atau hosting.");
+  }
+
   /* ---------- auth & navigasi tab ---------- */
   const isAllowedAdmin = (email) => {
     if (!email) return false;
     const lower = email.toLowerCase();
     return (ALLOWED_ADMIN_EMAILS || []).some((allowed) => allowed.toLowerCase() === lower);
   };
+
+  // Tangani hasil login Redirect (jika halaman dialihkan dari Google)
+  try {
+    const redirectRes = await A.getRedirectResult(auth);
+    if (redirectRes && redirectRes.user) {
+      if (!isAllowedAdmin(redirectRes.user.email)) {
+        await A.signOut(auth);
+        msg("loginMsg", `Akses ditolak: Akun ${redirectRes.user.email} bukan email admin yang diizinkan.`);
+      }
+    }
+  } catch (err) {
+    console.error("Error getRedirectResult:", err);
+    if (err.code === "auth/unauthorized-domain") {
+      msg("loginMsg", `Domain "${window.location.hostname}" belum terdaftar di Firebase Console > Authentication > Settings > Authorized Domains.`);
+    } else if (err.code) {
+      msg("loginMsg", "Error redirect login: " + (err.message || err.code));
+    }
+  }
 
   A.onAuthStateChanged(auth, async (user) => {
     if (user) {
@@ -116,13 +138,31 @@ async function init() {
     }
   });
 
-  // Login dengan Google
+  const googleProvider = new A.GoogleAuthProvider();
+  googleProvider.setCustomParameters({ prompt: "select_account" });
+
+  const doRedirectLogin = async () => {
+    msg("loginMsg", "Mengalihkan ke halaman login Google resmi...", true);
+    try {
+      await A.signInWithRedirect(auth, googleProvider);
+    } catch (err) {
+      console.error("signInWithRedirect error:", err);
+      if (err.code === "auth/unauthorized-domain") {
+        msg("loginMsg", `Domain "${window.location.hostname}" belum diizinkan di Firebase Console > Authentication > Settings > Authorized Domains.`);
+      } else {
+        msg("loginMsg", "Gagal mengalihkan ke Google: " + (err.message || err.code));
+      }
+    }
+  };
+
+  // Login dengan Google (Popup dengan Auto-Fallback ke Redirect jika diblokir)
   const googleBtn = $("googleLoginBtn");
   if (googleBtn) {
-    const googleProvider = new A.GoogleAuthProvider();
-    googleProvider.setCustomParameters({ prompt: "select_account" });
     googleBtn.onclick = async () => {
-      $("loginMsg").textContent = "";
+      $("loginMsg").textContent = "Membuka jendela login Google...";
+      $("loginMsg").className = "msg";
+      googleBtn.disabled = true;
+
       try {
         const res = await A.signInWithPopup(auth, googleProvider);
         if (!isAllowedAdmin(res.user?.email)) {
@@ -130,16 +170,32 @@ async function init() {
           msg("loginMsg", `Akses ditolak: Akun ${res.user?.email} bukan email admin yang diizinkan.`);
         }
       } catch (err) {
-        console.error(err);
-        if (err.code === "auth/popup-closed-by-user") {
-          msg("loginMsg", "Login Google dibatalkan.");
+        console.warn("Popup gagal atau diblokir adblocker:", err);
+        // Jika popup diblokir oleh adblocker, popup-blocker, atau lingkungan browser
+        if (
+          err.code === "auth/popup-blocked" ||
+          err.code === "auth/cancelled-popup-request" ||
+          err.code === "auth/popup-closed-by-user" ||
+          err.code === "auth/operation-not-supported-in-this-environment"
+        ) {
+          // Otomatis beralih ke Redirect (100% lolos adblocker & popup blocker)
+          await doRedirectLogin();
+          return;
         } else if (err.code === "auth/unauthorized-domain") {
-          msg("loginMsg", "Domain belum diizinkan di Firebase Console > Authentication > Settings > Authorized Domains.");
+          msg("loginMsg", `Domain "${window.location.hostname}" belum diizinkan di Firebase Console > Authentication > Settings > Authorized Domains.`);
         } else {
           msg("loginMsg", "Gagal login Google: " + (err.message || err.code));
         }
+      } finally {
+        googleBtn.disabled = false;
       }
     };
+  }
+
+  // Tombol Mode Redirect Langsung (anti-blocker)
+  const redirectBtn = $("googleRedirectBtn");
+  if (redirectBtn) {
+    redirectBtn.onclick = () => doRedirectLogin();
   }
 
   $("loginBtn").onclick = async () => {
