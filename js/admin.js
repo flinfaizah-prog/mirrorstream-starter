@@ -212,6 +212,27 @@ async function init() {
     }
   };
 
+  const forgotBtn = $("forgotPwBtn");
+  if (forgotBtn) {
+    forgotBtn.onclick = async () => {
+      const email = $("email").value.trim() || (ALLOWED_ADMIN_EMAILS && ALLOWED_ADMIN_EMAILS[0]) || "";
+      if (!email) {
+        msg("loginMsg", "Isi kolom email admin terlebih dahulu.");
+        return;
+      }
+      if (!isAllowedAdmin(email)) {
+        msg("loginMsg", `Akses ditolak: ${email} bukan email admin yang diizinkan.`);
+        return;
+      }
+      try {
+        await A.sendPasswordResetEmail(auth, email);
+        msg("loginMsg", `Link reset password telah dikirim ke ${email}. Cek inbox atau spam email Anda.`, true);
+      } catch (e) {
+        msg("loginMsg", "Gagal kirim reset email: " + (e.message || e.code));
+      }
+    };
+  }
+
   $("logout").onclick = () => A.signOut(auth);
 
   document.querySelectorAll("[data-tab]").forEach((b) => {
